@@ -14,16 +14,16 @@ jobs:
 
     steps:
       - name: Repository auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Python 3.11 einrichten
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
       - name: state.json aus Cache wiederherstellen
         id: cache-state-restore
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: state.json
           key: oatly-state-${{ github.ref_name }}-${{ github.run_id }}
@@ -42,8 +42,7 @@ jobs:
 
       - name: state.json im Cache speichern
         if: always() && hashFiles('state.json') != ''
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: state.json
           key: oatly-state-${{ github.ref_name }}-${{ github.run_id }}
-

@@ -1,0 +1,49 @@
+name: Oatly Alert
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  check-oatly:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Python 3.11 einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: state.json aus Cache wiederherstellen
+        id: cache-state-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: state.json
+          key: oatly-state-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            oatly-state-${{ github.ref_name }}-
+
+      - name: Abhaengigkeiten installieren
+        run: pip install -r requirements.txt
+
+      - name: Oatly-Angebote pruefen
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PRICE_THRESHOLD: ${{ vars.PRICE_THRESHOLD }}
+        run: python src/check_oatly.py
+
+      - name: state.json im Cache speichern
+        if: always() && hashFiles('state.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: state.json
+          key: oatly-state-${{ github.ref_name }}-${{ github.run_id }}
+

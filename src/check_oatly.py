@@ -221,6 +221,10 @@ def load_price_threshold() -> Decimal | None:
     return parse_decimal(raw_threshold)
 
 
+def load_bool_env(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def should_notify(changes: list[str], snapshot: OfferSnapshot, threshold: Decimal | None) -> bool:
     if not changes:
         return False
@@ -290,6 +294,7 @@ def main() -> int:
     configure_logging()
 
     threshold = load_price_threshold()
+    force_test_message = load_bool_env("FORCE_TEST_MESSAGE")
     bot_token = require_env("TELEGRAM_BOT_TOKEN")
     chat_id = require_env("TELEGRAM_CHAT_ID")
 
@@ -298,7 +303,11 @@ def main() -> int:
     current_snapshot = parse_snapshot(html)
     changes = determine_changes(previous_state, current_snapshot)
 
-    if should_notify(changes, current_snapshot, threshold):
+    if force_test_message:
+        logging.info("FORCE_TEST_MESSAGE aktiv: Sende Testnachricht unabhaengig von Aenderungen.")
+        changes = ["Manuell erzwungene Testnachricht"]
+
+    if force_test_message or should_notify(changes, current_snapshot, threshold):
         message = build_message(current_snapshot, changes, threshold)
         send_telegram_message(bot_token, chat_id, message)
         logging.info("Benachrichtigung gesendet.")

@@ -2,6 +2,12 @@ name: Oatly Alert
 
 on:
   workflow_dispatch:
+    inputs:
+      force_test_message:
+        description: "Testnachricht an Telegram senden"
+        required: false
+        default: false
+        type: boolean
   schedule:
     - cron: "0 */6 * * *"
 
@@ -38,6 +44,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           PRICE_THRESHOLD: ${{ vars.PRICE_THRESHOLD }}
+          FORCE_TEST_MESSAGE: ${{ inputs.force_test_message || 'false' }}
         run: python src/check_oatly.py
 
       - name: state.json im Cache speichern

@@ -50,6 +50,8 @@ So startest du den Workflow manuell:
 3. Waehle den Workflow `Oatly Alert`.
 4. Klicke auf `Run workflow`.
 
+Optional kannst du dabei `force_test_message` aktivieren. Dann wird unabhaengig von Preisgrenze, Cache und Angebotsaenderungen eine Testnachricht an Telegram gesendet.
+
 Zusaetzlich laeuft der Workflow automatisch alle 6 Stunden.
 
 ## Wie die Erkennung funktioniert
@@ -69,6 +71,7 @@ Eine Benachrichtigung wird verschickt, wenn:
 - sich der Tiefstpreis geaendert hat
 - sich die Haendler geaendert haben
 - sich die Anzahl der Angebote geaendert hat
+- der Workflow manuell mit aktiviertem `force_test_message` gestartet wurde
 
 ## Lokale Nutzung
 

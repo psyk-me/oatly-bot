@@ -90,15 +90,21 @@ def extract_offer_count(text: str) -> int:
 
 def extract_best_price(text: str) -> Decimal | None:
     patterns = [
-        r"Tiefstpreis\s+(\d+,\d{2})\s*€",
-        r"\bab\s+(\d+,\d{2})\s*€\b",
+        r"Tiefstpreis(?:[^0-9]+)(\d+,\d{2})\s*€",
+        r"Unter allen .*? ist (\d+,\d{2})\s*€\s+der aktuell günstigste",
         r"ist\s+(\d+,\d{2})\s*€\s+der aktuell günstigste",
+        r"\bab\s+(\d+,\d{2})\s*€\b",
     ]
 
     for pattern in patterns:
         match = re.search(pattern, text, flags=re.IGNORECASE)
         if match:
             return parse_decimal(match.group(1))
+
+    all_prices = re.findall(r"\b(\d+,\d{2})\s*€", text)
+    if all_prices:
+        return min(parse_decimal(price) for price in all_prices)
+
     return None
 
 
@@ -114,8 +120,8 @@ def split_merchants(raw_value: str) -> list[str]:
 
 def extract_merchants(text: str) -> list[str]:
     patterns = [
-        r"Im Moment gibt es Oatly Barista Angebote(?: bzw\. Oatly Barista Werbung)? bei ([^.]+)\.",
-        r"aktuelle Oatly Barista Angebote(?: bzw\. Oatly Barista Werbung)? bei ([^.]+)\.",
+        r"Im Moment gibt es Oatly Barista Angebote(?: bzw\. Oatly Barista Werbung)? bei (.+?)\.\s",
+        r"aktuelle Oatly Barista Angebote(?: bzw\. Oatly Barista Werbung)? bei (.+?)\.\s",
     ]
 
     for pattern in patterns:
@@ -130,7 +136,7 @@ def parse_snapshot(html: str) -> OfferSnapshot:
     offer_count = extract_offer_count(text)
     best_price = extract_best_price(text)
     merchants = extract_merchants(text)
-    current_offer_present = offer_count > 0 and best_price is not None
+    current_offer_present = offer_count > 0
 
     snapshot = OfferSnapshot(
         checked_at=datetime.now(timezone.utc).isoformat(),

@@ -82,6 +82,9 @@ def format_decimal(value: Decimal) -> str:
 
 
 def extract_offer_count(text: str) -> int:
+    if re.search(r"\bein Angebot\b", text, flags=re.IGNORECASE):
+        return 1
+
     match = re.search(r"\b(\d+)\s+Angebote\b", text, flags=re.IGNORECASE)
     if not match:
         return 0
@@ -89,21 +92,30 @@ def extract_offer_count(text: str) -> int:
 
 
 def extract_best_price(text: str) -> Decimal | None:
+    current_offer_block = text.split("letzte Aktion", 1)[0]
     patterns = [
         r"Tiefstpreis(?:[^0-9]+)(\d+,\d{2})\s*€",
         r"Unter allen .*? ist (\d+,\d{2})\s*€\s+der aktuell günstigste",
+        r"\b(?:\d+\s+Angebote|ein Angebot)\b.*?(?:ab\s+)?(\d+,\d{2})\s*€",
         r"ist\s+(\d+,\d{2})\s*€\s+der aktuell günstigste",
-        r"\bab\s+(\d+,\d{2})\s*€\b",
     ]
 
     for pattern in patterns:
-        match = re.search(pattern, text, flags=re.IGNORECASE)
+        match = re.search(pattern, current_offer_block, flags=re.IGNORECASE)
         if match:
             return parse_decimal(match.group(1))
 
-    all_prices = re.findall(r"\b(\d+,\d{2})\s*€", text)
-    if all_prices:
-        return min(parse_decimal(price) for price in all_prices)
+    active_offer_prices = re.findall(
+        (
+            r"(?:noch \d+ Tage gültig|nur noch heute gültig|ab morgen gültig|"
+            r"in \d+ Tagen gültig|heute gültig|gültig bis \d{2}\.\d{2}\.\d{2})"
+            r".{0,80}?(\d+,\d{2})\s*€"
+        ),
+        text,
+        flags=re.IGNORECASE,
+    )
+    if active_offer_prices:
+        return min(parse_decimal(price) for price in active_offer_prices)
 
     return None
 
@@ -240,7 +252,7 @@ def build_message(snapshot: OfferSnapshot, changes: list[str], threshold: Decima
         f"Angebot aktiv: {'ja' if snapshot.current_offer_present else 'nein'}",
         f"Anzahl Angebote: {snapshot.offer_count}",
         f"Tiefstpreis: {snapshot.best_price or 'unbekannt'} EUR",
-        f"Haendler: {merchants}",
+        f"Im Angebot bei: {merchants}",
         f"Quelle: {snapshot.page_url}",
     ]
 

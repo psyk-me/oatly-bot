@@ -66,7 +66,7 @@ So startest du den Workflow manuell:
 
 Optional kannst du dabei `force_test_message` aktivieren. Dann wird unabhaengig von Preisgrenze, Cache und Angebotsaenderungen eine Testnachricht an Telegram gesendet.
 
-Zusaetzlich laeuft der Workflow automatisch stuendlich. Dadurch werden neue `/subscribe`- oder `/unsubscribe`-Nachrichten in der Regel innerhalb einer Stunde verarbeitet.
+Zusaetzlich laeuft der Workflow automatisch einmal taeglich um 08:15 UTC. Neue `/subscribe`- oder `/unsubscribe`-Nachrichten werden beim naechsten geplanten Lauf oder bei einem manuellen Start verarbeitet.
 
 ## Wie die Erkennung funktioniert
 
@@ -111,7 +111,7 @@ Nach dem Lauf liegt eine lokale `state.json` im Projektverzeichnis.
 - Die Seitenstruktur oder die Formulierungen auf Aktionspreis haben sich geaendert: Dann muss die Parsing-Logik in `src/check_oatly.py` angepasst werden.
 - `PRICE_THRESHOLD` hat ein ungeeignetes Format: Verwende einen Wert wie `1.79` oder `1,79`.
 - Der erste Workflow-Lauf hat noch keinen Cache: Das ist normal. `state.json` wird nach dem ersten erfolgreichen Lauf gespeichert.
-- Neue `/subscribe`-Befehle werden erst beim naechsten Workflow-Lauf verarbeitet. Bei der aktuellen Einstellung passiert das stuendlich oder sofort per manuellem Start.
+- Neue `/subscribe`-Befehle werden erst beim naechsten Workflow-Lauf verarbeitet. Bei der aktuellen Einstellung passiert das taeglich oder sofort per manuellem Start.
 
 ## Hinweise zum Cache
 

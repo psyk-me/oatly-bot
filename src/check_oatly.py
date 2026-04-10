@@ -62,6 +62,9 @@ class TelegramAPIError(OatlyCheckError):
 
         return self.status_code == 403 or "chat not found" in description or "bot was blocked" in description
 
+    def is_conflict(self) -> bool:
+        return self.status_code == 409
+
 
 def configure_logging() -> None:
     logging.basicConfig(
@@ -475,7 +478,17 @@ def process_telegram_updates(bot_token: str, telegram_state: dict[str, Any]) -> 
         subscriber["chat_id"]: subscriber for subscriber in coerce_subscribers(telegram_state.get("subscribers", []))
     }
 
-    updates = fetch_telegram_updates(bot_token, last_update_id + 1 if last_update_id else 0)
+    try:
+        updates = fetch_telegram_updates(bot_token, last_update_id + 1 if last_update_id else 0)
+    except TelegramAPIError as exc:
+        if exc.is_conflict():
+            logging.warning("Telegram getUpdates steht gerade in Konflikt. Dieser Lauf ueberspringt das Polling.")
+            return {
+                "last_update_id": last_update_id,
+                "subscribers": sorted(subscribers_by_id.values(), key=lambda item: item["chat_id"]),
+            }
+        raise
+
     logging.info("Telegram-Updates gefunden: %s", len(updates))
 
     for update in updates:
@@ -502,19 +515,28 @@ def process_telegram_updates(bot_token: str, telegram_state: dict[str, Any]) -> 
         if command in SUBSCRIPTION_COMMANDS:
             subscriber = build_subscriber(chat)
             subscribers_by_id[chat_id] = asdict(subscriber)
-            send_telegram_message(bot_token, chat_id, build_subscription_message(chat))
+            try:
+                send_telegram_message(bot_token, chat_id, build_subscription_message(chat))
+            except TelegramAPIError as exc:
+                logging.warning("Bestaetigung fuer Chat %s konnte nicht gesendet werden: %s", chat_id, exc)
             logging.info("Chat %s wurde registriert.", chat_id)
         elif command in UNSUBSCRIBE_COMMANDS:
             previous = subscribers_by_id.pop(chat_id, None)
             label = previous["label"] if previous else build_subscription_label(chat)
-            send_telegram_message(bot_token, chat_id, build_unsubscribe_message(label))
+            try:
+                send_telegram_message(bot_token, chat_id, build_unsubscribe_message(label))
+            except TelegramAPIError as exc:
+                logging.warning("Abmeldebestaetigung fuer Chat %s konnte nicht gesendet werden: %s", chat_id, exc)
             logging.info("Chat %s wurde abgemeldet.", chat_id)
         elif command in INFO_COMMANDS:
-            send_telegram_message(
-                bot_token,
-                chat_id,
-                build_status_message(chat_id in subscribers_by_id, subscriber_count),
-            )
+            try:
+                send_telegram_message(
+                    bot_token,
+                    chat_id,
+                    build_status_message(chat_id in subscribers_by_id, subscriber_count),
+                )
+            except TelegramAPIError as exc:
+                logging.warning("Statusantwort fuer Chat %s konnte nicht gesendet werden: %s", chat_id, exc)
             logging.info("Status an Chat %s gesendet.", chat_id)
 
     return {

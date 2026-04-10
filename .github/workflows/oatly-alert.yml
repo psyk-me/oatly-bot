@@ -1,5 +1,9 @@
 name: Oatly Alert
 
+concurrency:
+  group: oatly-alert
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:
